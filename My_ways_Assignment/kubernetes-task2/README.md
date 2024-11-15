@@ -1,152 +1,248 @@
-Resource Monitoring Application - Documentation
-Overview
-This application monitors various system resources including CPU, memory, disk, and network usage. It provides an API endpoint (/health) that returns the current resource utilization in JSON format.
+# Application Deployment on Kubernetes Using Helm
 
-The application is built using Python and the Flask web framework. The system is containerized using Docker and can be deployed on Kubernetes using Helm.
+## Part 2: Application Deployment on Kubernetes Using Helm
 
-Features
-Monitors CPU, memory, disk, and network resources.
-Provides real-time resource utilization through a REST API.
-Exposes the /health endpoint to fetch the resource data in JSON format.
-Requirements
-Python 3.x: The application is built using Python, version 3.12.3 or later.
-Docker: To containerize the application.
-Kubernetes: To orchestrate and deploy the application.
-Helm: For managing Kubernetes deployments.
-Prerequisites
-Before deploying or running the application, ensure the following tools are installed:
+This documentation provides a step-by-step guide to deploying an application on a Kubernetes cluster using Helm. It also outlines how to implement basic monitoring for the deployed application.
 
-Docker
-Minikube (or Kubernetes cluster)
-Helm
-psutil (Python package for resource monitoring)
-Installation
+---
 
-1. Clone the Repository
-   Clone the repository containing the application code and Helm charts.
+## Objectives
 
-bash
-Copy code
-git clone <repository_url>
-cd <project_directory> 2. Build the Docker Image
-In the root directory of the project, build the Docker image:
+1. Deploy an application of your choice on a Kubernetes cluster using Helm charts.
+2. Implement basic monitoring for the application.
+3. Expose the application locally via the cluster.
+4. Ensure the application is accessible via Kubernetes services.
 
-bash
-Copy code
-docker build -t kubernetes-task2:latest . 3. Run Locally (Optional)
-To test the application locally, run the Docker container using the following command:
+---
 
-bash
-Copy code
-docker run -p 5001:5000 kubernetes-task2
-You can access the application by visiting http://localhost:5001/health.
+## Functional Requirements
 
-4. Create Helm Chart for Kubernetes Deployment
-   If you're deploying the application in Kubernetes, you need to configure Helm charts. Ensure the following structure is in your project directory:
+### Kubernetes Setup
 
-Copy code
-.
-├── app.py
-├── Dockerfile
-├── requirements.txt
-├── kubernetes_task2_chart/
-│ ├── charts/
-│ ├── templates/
-│ └── values.yaml
-├── helm_chart_values.yaml
-└── README.md
-Note: Make sure you have the correct values in values.yaml for the Kubernetes deployment.
+1. **Kubernetes Cluster**:
+    - Use Minikube, Kind, or any local Kubernetes environment for deployment.
+    - Ensure Kubernetes is running locally. You can start Minikube with the following command:
+    
+    ```bash
+    minikube start
+    ```
 
-5. Deploy Application on Kubernetes Using Helm
-   Once you have configured the Helm charts, you can deploy the application to your Kubernetes cluster:
+2. **Helm Setup**:
+    - Install Helm, the Kubernetes package manager.
+    - Ensure Helm is installed by running:
+    
+    ```bash
+    helm version
+    ```
 
-bash
-Copy code
-helm install kubernetes-task2 ./kubernetes_task2_chart
-You can verify the deployment with:
+3. **Helm Chart Organization**:
+    - Organize your Helm charts for easy management and reusability.
 
-bash
-Copy code
-kubectl get pods 6. Accessing the Application
-Expose the application on a local port using a NodePort or Ingress (based on your setup). If using a NodePort, you can access the app via the node's IP and port.
+### Application Deployment
 
-To expose the application as a NodePort service, modify service.yaml in the Helm chart:
+1. **Create a Flask Application** (or any preferred application):
+    - The app monitors system resources using the `psutil` library.
+    - You can use the following basic `app.py` as an example:
 
-yaml
-Copy code
-apiVersion: v1
-kind: Service
-metadata:
-name: kubernetes-task2-service
-spec:
-type: NodePort
-selector:
-app: kubernetes-task2
-ports: - protocol: TCP
-port: 5000
-targetPort: 5000
-nodePort: 30001
-Now, you can access the application by visiting:
+    ```python
+    from flask import Flask, jsonify
+    import psutil
 
-arduino
-Copy code
-http://<node_ip>:30001/health
-Monitoring
-The application is designed to monitor system resources using the psutil library. The /health endpoint returns a JSON response containing data on:
+    app = Flask(__name__)
 
-CPU usage (overall and per core)
-Memory usage (total, available, used, percent)
-Disk usage (total, used, free, percent)
-Disk I/O (read and write bytes)
-Network I/O (sent and received bytes)
-Example Response:
-json
-Copy code
-{
-"cpu": {
-"cpu_percent": 45.5,
-"cpu_per_core": [25.3, 30.2, 15.7],
-"cpu_count": 4
-},
-"memory": {
-"memory_total": 8589934592,
-"memory_available": 4294967296,
-"memory_used": 3435973836,
-"memory_percent": 50.0
-},
-"disk": {
-"disk_total": 21474836480,
-"disk_used": 10737418240,
-"disk_free": 10737418240,
-"disk_percent": 50.0
-},
-"disk_io": {
-"disk_read": 1024,
-"disk_write": 2048
-},
-"network": {
-"net_sent": 1000000,
-"net_recv": 500000
-}
-}
-Cleanup
-To clean up the Kubernetes deployment and remove the application, run:
+    @app.route('/health')
+    def health():
+        # System health metrics logic
+        ...
+    
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=5000)
+    ```
 
-bash
-Copy code
-helm uninstall kubernetes-task2
-To remove the Docker image locally:
+2. **Dockerize the Application**:
+    - Create a `Dockerfile` for your application.
+    
+    ```dockerfile
+    FROM python:3.12-slim
 
-bash
-Copy code
-docker rmi kubernetes-task2:latest
-Troubleshooting
-Common Issues:
-Port Binding Error: If you're running the container and encountering port binding errors, ensure that the specified port is not being used by another process. You can use netstat or lsof to check which process is using the port.
+    WORKDIR /app
 
-Minikube Issues: If you're using Minikube and face issues loading images, ensure that Minikube is running and that your Docker daemon is properly configured to work with Minikube.
+    RUN apt-get update && apt-get install -y gcc python3-dev
 
-Helm Installation Failures: Make sure that Helm is correctly installed and configured. Also, ensure that you are providing the correct release name during the installation.
+    COPY requirements.txt requirements.txt
+    RUN pip install --no-cache-dir -r requirements.txt
 
-Conclusion
-This application provides basic resource monitoring functionality with a Flask-based API. It can be run locally via Docker or deployed to a Kubernetes cluster using Helm for scalability and orchestration.
+    COPY . .
+
+    EXPOSE 5000
+
+    CMD ["python", "app.py"]
+    ```
+
+3. **Build the Docker Image**:
+    - Build the Docker image locally.
+    
+    ```bash
+    docker build -t kubernetes-task2 .
+    ```
+
+4. **Load the Image into Minikube**:
+    - Minikube has its own Docker daemon, so to use the image inside Minikube, you need to load the image.
+    
+    ```bash
+    minikube image load kubernetes-task2:latest
+    ```
+
+5. **Create a Helm Chart for Kubernetes Deployment**:
+    - Structure the Helm chart with the following folder structure:
+    
+    ```bash
+    kubernetes_task2_chart/
+    ├── charts/
+    ├── templates/
+    │   ├── deployment.yaml
+    │   ├── service.yaml
+    │   └── ingress.yaml
+    ├── values.yaml
+    └── Chart.yaml
+    ```
+
+6. **Helm Chart Templates**:
+
+    - **deployment.yaml**:
+    
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: kubernetes-task2
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: kubernetes-task2
+      template:
+        metadata:
+          labels:
+            app: kubernetes-task2
+        spec:
+          containers:
+            - name: kubernetes-task2
+              image: "kubernetes-task2:latest"
+              ports:
+                - containerPort: 5000
+    ```
+
+    - **service.yaml**:
+    
+    ```yaml
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: kubernetes-task2
+    spec:
+      selector:
+        app: kubernetes-task2
+      ports:
+        - protocol: TCP
+          port: 80
+          targetPort: 5000
+      type: NodePort
+    ```
+
+7. **Deploy the Application with Helm**:
+    - Run the following Helm command to deploy the application:
+    
+    ```bash
+    helm install kubernetes-task2 ./kubernetes_task2_chart
+    ```
+
+8. **Expose the Application**:
+    - The application can be accessed locally by exposing it via a `NodePort` service (configured in the `service.yaml` file).
+
+    ```bash
+    kubectl get svc
+    ```
+
+    Look for the `NodePort` value under `PORT(S)` and use it to access the application locally.
+
+### Monitoring
+
+1. **Prometheus Setup**:
+    - Install Prometheus for monitoring the application.
+    
+    ```bash
+    helm install prometheus prometheus-community/prometheus
+    ```
+
+2. **Grafana Setup**:
+    - Install Grafana to visualize the metrics.
+    
+    ```bash
+    helm install grafana grafana/grafana
+    ```
+
+3. **Configure Prometheus Scraping**:
+    - In the `values.yaml` file of your Helm chart, add Prometheus scraping configuration for your Flask application.
+    
+    ```yaml
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        namespace: default
+        selector:
+          matchLabels:
+            app: kubernetes-task2
+    ```
+
+4. **Access Grafana Dashboard**:
+    - Once Grafana is installed, you can access it through the Kubernetes service:
+    
+    ```bash
+    kubectl port-forward svc/grafana 3000:80
+    ```
+
+    Open your browser and go to `http://localhost:3000` to view the Grafana dashboard. Use the default credentials (`admin/admin`) to log in.
+
+---
+
+## Non-Functional Requirements
+
+### Performance
+
+- Ensure that the application and infrastructure are optimized for performance and scaling.
+  
+### Security
+
+1. **Secret Management**:
+    - Securely manage secrets such as API keys and database credentials using tools like AWS Secrets Manager or Kubernetes Secrets.
+
+2. **Access Control**:
+    - Implement proper access control for both Kubernetes and Helm to ensure the security of the deployment.
+
+### Logging & Monitoring
+
+1. **Enable Application Logs**:
+    - Ensure that your application is logging useful information for debugging and monitoring.
+
+2. **Set Up Monitoring Tools**:
+    - Use Prometheus and Grafana (or equivalent tools) to monitor application health and resource usage.
+
+---
+
+## Technical Requirements
+
+### Technology Stack
+
+1. **Backend**: Python (Flask)
+2. **Containerization**: Docker
+3. **Orchestration**: Kubernetes (Minikube)
+4. **Package Management**: Helm
+5. **Monitoring**: Prometheus, Grafana
+
+### Deployment
+
+- The application must be accessible locally via Kubernetes. You can test the application after deploying using the NodePort.
+
+---
