@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: kubernetes-task2
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  name: kubernetes-task2
+  type: NodePort
+  port: 5000
+  targetPort: 5000
+  nodePort: 30000
+
+resources: {}
+
+ingress:
+  enabled: false
+
+prometheus:
+  enabled: true # Enabling Prometheus metrics monitoring
+  port: 5000
+  path: /health
+
+affinity: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+podAnnotations: {}
